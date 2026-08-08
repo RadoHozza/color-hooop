@@ -9,12 +9,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Setup Gradle wrapper
-        run: gradle wrapper --gradle-version 8.7
-      - name: Grant execute permission
-        run: chmod +x gradlew
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
       - name: Build with Gradle
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
