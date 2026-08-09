@@ -1,13 +1,20 @@
 package com.example.hopcolor
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -15,9 +22,12 @@ import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 
 class MainActivity : AppCompatActivity() {
 
+    private var speechRecognizer: SpeechRecognizer? = null
+    private lateinit var audioManager: AudioManager
     private lateinit var rootView: android.view.View
     private lateinit var statusText: TextView
     private lateinit var countdownText: TextView
@@ -25,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var endButton: Button
     private lateinit var countdownSwitch: Switch
     private lateinit var volumeSeekBar: SeekBar
+    private lateinit var voiceControlSwitch: Switch
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -49,6 +60,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+
         rootView = findViewById(R.id.root)
         statusText = findViewById(R.id.status)
         countdownText = findViewById(R.id.countdown)
@@ -56,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         endButton = findViewById(R.id.endButton)
         countdownSwitch = findViewById(R.id.countdownSwitch)
         volumeSeekBar = findViewById(R.id.volumeSeekBar)
+        voiceControlSwitch = findViewById(R.id.voiceControlSwitch)
 
         startResetButton.setOnClickListener {
             if (sequenceRunning) {
@@ -67,16 +81,125 @@ class MainActivity : AppCompatActivity() {
 
         endButton.setOnClickListener {
             handler.removeCallbacksAndMessages(null)
+            speechRecognizer?.destroy()
             finishAffinity()
             Process.killProcess(Process.myPid())
+        }
+
+        voiceControlSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                enableVoiceControl()
+            } else {
+                disableVoiceControl()
+            }
+            if (!sequenceRunning) showIdleState()
         }
 
         showIdleState()
     }
 
+    private fun enableVoiceControl() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+            return
+        }
+        initSpeechRecognizerIfNeeded()
+        if (!sequenceRunning) {
+            listenOnce()
+        }
+    }
+
+    private fun disableVoiceControl() {
+        speechRecognizer?.cancel()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                initSpeechRecognizerIfNeeded()
+                if (!sequenceRunning) {
+                    listenOnce()
+                }
+            } else {
+                // Bez povolenia ovladanie hlasom nemoze fungovat - vypni prepinac spat
+                voiceControlSwitch.isChecked = false
+            }
+        }
+    }
+
+    private fun initSpeechRecognizerIfNeeded() {
+        if (speechRecognizer != null) return
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        recognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onResults(results: Bundle?) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val heard = matches?.joinToString(" ")?.lowercase() ?: ""
+                if (heard.contains("hop") && !sequenceRunning) {
+                    runSequence()
+                } else {
+                    restartListening()
+                }
+            }
+
+            override fun onError(error: Int) = restartListening()
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {}
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        speechRecognizer = recognizer
+    }
+
+    private fun listenOnce() {
+        if (!voiceControlSwitch.isChecked) return
+        if (sequenceRunning) return
+        val recognizer = speechRecognizer ?: return
+        // Docasne stlm systemove streamy - system na nich prehrava kratky tón pri
+        // kazdom startListening(), co pri opakovanom cakani na "HOP" znie ako tukanie.
+        try {
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+            audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
+            audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0)
+        } catch (e: Exception) {
+        }
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
+        }
+        recognizer.startListening(intent)
+        handler.postDelayed({
+            try {
+                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+                audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
+                audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0)
+            } catch (e: Exception) {
+            }
+        }, 500)
+    }
+
+    private fun restartListening() {
+        if (sequenceRunning) return
+        if (!voiceControlSwitch.isChecked) return
+        if (speechRecognizer == null) return
+        handler.postDelayed({ listenOnce() }, 300)
+    }
+
     private fun showIdleState() {
         rootView.setBackgroundColor(Color.RED)
         statusText.visibility = View.VISIBLE
+        statusText.text = if (voiceControlSwitch.isChecked) {
+            "Pripravený?\nPre štart zahlas\nHOP"
+        } else {
+            "Pripravený?\nStlač\nSTART"
+        }
         countdownText.visibility = View.GONE
         startResetButton.text = "START"
     }
@@ -85,9 +208,14 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacksAndMessages(null)
         sequenceRunning = false
         showIdleState()
+        restartListening()
     }
 
     private fun runSequence(step: Int = 0) {
+        if (step == 0) {
+            // Zastav pocuvanie na pozadi pocas behu programu
+            speechRecognizer?.cancel()
+        }
         sequenceRunning = true
         statusText.visibility = View.GONE
         countdownText.visibility = if (countdownSwitch.isChecked) View.VISIBLE else View.GONE
@@ -96,6 +224,7 @@ class MainActivity : AppCompatActivity() {
         if (step >= sequence.size) {
             sequenceRunning = false
             showIdleState()
+            restartListening()
             return
         }
 
@@ -174,5 +303,10 @@ class MainActivity : AppCompatActivity() {
         handler.postDelayed({
             tickCountdown(secondsLeft - 1, onDone)
         }, 1000L)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        speechRecognizer?.destroy()
     }
 }
