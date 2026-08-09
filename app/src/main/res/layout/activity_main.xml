@@ -9,8 +9,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="Pripravený? Pre štart zahlas HOP"
-        android:textColor="#FFFFFF"
+        android:text="Pripravený?\nPre štart zahlas\nHOP"
+        android:textColor="#000000"
         android:textSize="26sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -82,7 +82,7 @@
                 android:layout_width="140dp"
                 android:layout_height="wrap_content"
                 android:max="100"
-                android:progress="20" />
+                android:progress="0" />
 
         </LinearLayout>
 
