@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var startResetButton: Button
     private lateinit var endButton: Button
     private lateinit var countdownSwitch: Switch
-    private lateinit var soundSwitch: Switch
+    private lateinit var volumeSeekBar: android.widget.SeekBar
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -58,14 +58,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Nastav ALARM stream (na nom hraju pipnutia) na maximalnu hlasitost telefonu
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        try {
-            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
-        } catch (e: Exception) {
-            // ak sa nepodari, pipnutia pojdu len na hlasitost, akú ma ALARM aktualne nastavenu
-        }
 
         rootView = findViewById(R.id.root)
         statusText = findViewById(R.id.status)
@@ -73,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         startResetButton = findViewById(R.id.startResetButton)
         endButton = findViewById(R.id.endButton)
         countdownSwitch = findViewById(R.id.countdownSwitch)
-        soundSwitch = findViewById(R.id.soundSwitch)
+        volumeSeekBar = findViewById(R.id.volumeSeekBar)
 
         startResetButton.setOnClickListener {
             if (sequenceRunning) {
@@ -211,7 +204,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playBeep(durationMs: Int) {
-        if (!soundSwitch.isChecked) return
+        val volume = volumeSeekBar.progress / 100f
+        if (volume <= 0f) return
         Thread {
             try {
                 val sampleRate = 44100
@@ -246,7 +240,7 @@ class MainActivity : AppCompatActivity() {
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build()
                 audioTrack.write(buffer, 0, buffer.size)
-                audioTrack.setVolume(1.0f)
+                audioTrack.setVolume(volume)
                 audioTrack.play()
                 Thread.sleep(durationMs.toLong() + 50)
                 audioTrack.stop()

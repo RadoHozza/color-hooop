@@ -34,39 +34,57 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:orientation="vertical">
 
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="POČÍTADLO"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginEnd="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_gravity="end">
 
-        <Switch
-            android:id="@+id/countdownSwitch"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="POČÍTADLO"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp" />
+
+            <Switch
+                android:id="@+id/countdownSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checked="true" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_gravity="end"
+            android:layout_marginTop="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ZVUK"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HLASITOSŤ"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp" />
 
-        <Switch
-            android:id="@+id/soundSwitch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true" />
+            <SeekBar
+                android:id="@+id/volumeSeekBar"
+                android:layout_width="140dp"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="100" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
