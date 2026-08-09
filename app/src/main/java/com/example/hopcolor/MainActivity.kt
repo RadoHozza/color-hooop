@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Bundle
 import android.os.Handler
@@ -21,7 +22,6 @@ import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import kotlin.math.sin
 
 class MainActivity : AppCompatActivity() {
 
@@ -56,6 +56,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Nastav ALARM stream (na nom hraju pipnutia) na maximalnu hlasitost telefonu
+        try {
+            val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+        } catch (e: Exception) {
+            // ak sa nepodari, pipnutia pojdu len na hlasitost, akú ma ALARM aktualne nastavenu
+        }
 
         rootView = findViewById(R.id.root)
         statusText = findViewById(R.id.status)
@@ -193,17 +202,23 @@ class MainActivity : AppCompatActivity() {
         Thread {
             try {
                 val sampleRate = 44100
-                val frequency = 1000.0
+                // 3000 Hz - blizko vrcholu citlivosti ludskeho sluchu (2-4 kHz),
+                // preraz aj cez chranice sluchu/slucadla na strelnici
+                val frequency = 3000.0
                 val numSamples = (durationMs / 1000.0 * sampleRate).toInt()
                 val buffer = ShortArray(numSamples)
+                val period = sampleRate / frequency
                 for (i in buffer.indices) {
-                    val angle = 2.0 * Math.PI * i * frequency / sampleRate
-                    buffer[i] = (sin(angle) * Short.MAX_VALUE * 0.8).toInt().toShort()
+                    // Stvorcova vlna namiesto sinusu - vyssia vnimana hlasitost
+                    // a viac harmonickych zloziek, lepsie prerazi hluk vystrelov
+                    val phase = (i % period) / period
+                    buffer[i] = if (phase < 0.5) Short.MAX_VALUE else Short.MIN_VALUE
                 }
                 val audioTrack = AudioTrack.Builder()
                     .setAudioAttributes(
                         AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            // ALARM stream - najhlasnejsi dostupny, casto ide aj cez stlmenie telefonu
+                            .setUsage(AudioAttributes.USAGE_ALARM)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build()
                     )
@@ -218,6 +233,7 @@ class MainActivity : AppCompatActivity() {
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build()
                 audioTrack.write(buffer, 0, buffer.size)
+                audioTrack.setVolume(1.0f)
                 audioTrack.play()
                 Thread.sleep(durationMs.toLong() + 50)
                 audioTrack.stop()
