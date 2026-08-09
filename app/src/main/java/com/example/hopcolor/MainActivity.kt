@@ -14,6 +14,7 @@ import android.speech.SpeechRecognizer
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var countdownText: TextView
     private lateinit var startResetButton: Button
     private lateinit var endButton: Button
+    private lateinit var countdownSwitch: Switch
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -42,7 +44,7 @@ class MainActivity : AppCompatActivity() {
         Color.GREEN to 3_000L,
         Color.RED to 7_000L,
         Color.GREEN to 3_000L,
-        Color.RED to 7_000L
+        Color.RED to 3_000L
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         countdownText = findViewById(R.id.countdown)
         startResetButton = findViewById(R.id.startResetButton)
         endButton = findViewById(R.id.endButton)
+        countdownSwitch = findViewById(R.id.countdownSwitch)
 
         startResetButton.setOnClickListener {
             if (sequenceRunning) {
@@ -152,7 +155,7 @@ class MainActivity : AppCompatActivity() {
     private fun runSequence(step: Int = 0) {
         sequenceRunning = true
         statusText.visibility = View.GONE
-        countdownText.visibility = View.VISIBLE
+        countdownText.visibility = if (countdownSwitch.isChecked) View.VISIBLE else View.GONE
         startResetButton.text = "RESET"
 
         if (step >= sequence.size) {
@@ -175,7 +178,9 @@ class MainActivity : AppCompatActivity() {
             onDone()
             return
         }
-        countdownText.text = secondsLeft.toString()
+        if (countdownSwitch.isChecked) {
+            countdownText.text = secondsLeft.toString()
+        }
         handler.postDelayed({
             tickCountdown(secondsLeft - 1, onDone)
         }, 1000L)
