@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,6 +21,7 @@ import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import kotlin.math.sin
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var startResetButton: Button
     private lateinit var endButton: Button
     private lateinit var countdownSwitch: Switch
+    private lateinit var soundSwitch: Switch
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -58,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         startResetButton = findViewById(R.id.startResetButton)
         endButton = findViewById(R.id.endButton)
         countdownSwitch = findViewById(R.id.countdownSwitch)
+        soundSwitch = findViewById(R.id.soundSwitch)
 
         startResetButton.setOnClickListener {
             if (sequenceRunning) {
@@ -153,6 +159,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runSequence(step: Int = 0) {
+        if (step == 0 && ::speechRecognizer.isInitialized) {
+            // Zastav pocuvanie na pozadi - to sposobovalo opakovane "tidit tit" pipanie pocas behu.
+            speechRecognizer.cancel()
+        }
         sequenceRunning = true
         statusText.visibility = View.GONE
         countdownText.visibility = if (countdownSwitch.isChecked) View.VISIBLE else View.GONE
@@ -167,10 +177,55 @@ class MainActivity : AppCompatActivity() {
 
         val (color, duration) = sequence[step]
         rootView.setBackgroundColor(color)
+        if (color == Color.GREEN) {
+            playBeep(500)
+        } else {
+            playBeep(200)
+        }
         val totalSeconds = (duration / 1000L).toInt()
         tickCountdown(totalSeconds) {
             runSequence(step + 1)
         }
+    }
+
+    private fun playBeep(durationMs: Int) {
+        if (!soundSwitch.isChecked) return
+        Thread {
+            try {
+                val sampleRate = 44100
+                val frequency = 1000.0
+                val numSamples = (durationMs / 1000.0 * sampleRate).toInt()
+                val buffer = ShortArray(numSamples)
+                for (i in buffer.indices) {
+                    val angle = 2.0 * Math.PI * i * frequency / sampleRate
+                    buffer[i] = (sin(angle) * Short.MAX_VALUE * 0.8).toInt().toShort()
+                }
+                val audioTrack = AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setSampleRate(sampleRate)
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(buffer.size * 2)
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+                audioTrack.write(buffer, 0, buffer.size)
+                audioTrack.play()
+                Thread.sleep(durationMs.toLong() + 50)
+                audioTrack.stop()
+                audioTrack.release()
+            } catch (e: Exception) {
+                // ticho ignorovat, zvuk nie je kriticky pre beh programu
+            }
+        }.start()
     }
 
     private fun tickCountdown(secondsLeft: Int, onDone: () -> Unit) {
