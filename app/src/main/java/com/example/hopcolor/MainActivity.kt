@@ -138,6 +138,8 @@ class MainActivity : AppCompatActivity() {
         // startListening(), co pri opakovanom cakani na "HOP" znie ako opakovane tukanie.
         try {
             audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+            audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
+            audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0)
         } catch (e: Exception) {
         }
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -148,6 +150,8 @@ class MainActivity : AppCompatActivity() {
         handler.postDelayed({
             try {
                 audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+                audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
+                audioManager.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0)
             } catch (e: Exception) {
             }
         }, 500)
@@ -204,8 +208,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playBeep(durationMs: Int) {
-        val volume = volumeSeekBar.progress / 100f
-        if (volume <= 0f) return
+        val linear = volumeSeekBar.progress / 100f
+        if (linear <= 0f) return
+        // Kvadraticka krivka - v polovici posuvnika je hlasitost citelne tichsia
+        // (linearny gain by v polke znel takmer rovnako hlasno ako na maxime)
+        val volume = linear * linear
         Thread {
             try {
                 val sampleRate = 44100
