@@ -26,6 +26,7 @@ import androidx.core.app.ActivityCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
+    private lateinit var audioManager: AudioManager
     private lateinit var rootView: android.view.View
     private lateinit var statusText: TextView
     private lateinit var countdownText: TextView
@@ -58,8 +59,8 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // Nastav ALARM stream (na nom hraju pipnutia) na maximalnu hlasitost telefonu
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         try {
-            val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
             val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
         } catch (e: Exception) {
@@ -140,11 +141,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun listenOnce() {
+        // Docasne stlm STREAM_MUSIC - system na nom prehrava kratky tón pri kazdom
+        // startListening(), co pri opakovanom cakani na "HOP" znie ako opakovane tukanie.
+        try {
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
+        } catch (e: Exception) {
+        }
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
         }
         speechRecognizer.startListening(intent)
+        handler.postDelayed({
+            try {
+                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+            } catch (e: Exception) {
+            }
+        }, 500)
     }
 
     private fun restartListening() {
