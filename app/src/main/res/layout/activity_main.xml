@@ -4,13 +4,49 @@
     android:layout_height="match_parent"
     android:background="#B71C1C">
 
-    <TextView
-        android:id="@+id/status"
+    <LinearLayout
+        android:id="@+id/idleGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="Povedz HOP"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pripravený? Pre štart zahlas HOP"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp" />
+
+        <Button
+            android:id="@+id/startButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="START"
+            android:textSize="22sp"
+            android:paddingLeft="48dp"
+            android:paddingRight="48dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/countdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text=""
         android:textColor="#FFFFFF"
-        android:textSize="24sp" />
+        android:textSize="140sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
 </FrameLayout>

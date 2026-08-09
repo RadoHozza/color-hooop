@@ -10,7 +10,10 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.view.View
 import android.view.WindowManager
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -20,6 +23,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var rootView: android.view.View
     private lateinit var statusText: TextView
+    private lateinit var countdownText: TextView
+    private lateinit var idleGroup: LinearLayout
+    private lateinit var startButton: Button
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -46,6 +52,17 @@ class MainActivity : AppCompatActivity() {
 
         rootView = findViewById(R.id.root)
         statusText = findViewById(R.id.status)
+        countdownText = findViewById(R.id.countdown)
+        idleGroup = findViewById(R.id.idleGroup)
+        startButton = findViewById(R.id.startButton)
+
+        startButton.setOnClickListener {
+            if (!sequenceRunning) {
+                runSequence()
+            }
+        }
+
+        showIdleState()
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
@@ -64,9 +81,8 @@ class MainActivity : AppCompatActivity() {
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
             initSpeechRecognizer()
-        } else {
-            statusText.text = "Chýba povolenie mikrofónu"
         }
+        // Ak povolenie chyba, hlasove ovladanie nebude fungovat, ale START tlacidlo funguje vzdy.
     }
 
     private fun initSpeechRecognizer() {
@@ -104,22 +120,45 @@ class MainActivity : AppCompatActivity() {
 
     private fun restartListening() {
         if (sequenceRunning) return
+        if (!::speechRecognizer.isInitialized) return
         handler.postDelayed({ listenOnce() }, 300)
+    }
+
+    private fun showIdleState() {
+        rootView.setBackgroundColor(Color.RED)
+        idleGroup.visibility = View.VISIBLE
+        countdownText.visibility = View.GONE
     }
 
     private fun runSequence(step: Int = 0) {
         sequenceRunning = true
-        statusText.text = ""
+        idleGroup.visibility = View.GONE
+        countdownText.visibility = View.VISIBLE
 
         if (step >= sequence.size) {
             sequenceRunning = false
+            showIdleState()
             restartListening()
             return
         }
 
         val (color, duration) = sequence[step]
         rootView.setBackgroundColor(color)
-        handler.postDelayed({ runSequence(step + 1) }, duration)
+        val totalSeconds = (duration / 1000L).toInt()
+        tickCountdown(totalSeconds) {
+            runSequence(step + 1)
+        }
+    }
+
+    private fun tickCountdown(secondsLeft: Int, onDone: () -> Unit) {
+        if (secondsLeft <= 0) {
+            onDone()
+            return
+        }
+        countdownText.text = secondsLeft.toString()
+        handler.postDelayed({
+            tickCountdown(secondsLeft - 1, onDone)
+        }, 1000L)
     }
 
     override fun onDestroy() {
