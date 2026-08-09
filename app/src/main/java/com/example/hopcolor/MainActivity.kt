@@ -7,13 +7,13 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -24,8 +24,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rootView: android.view.View
     private lateinit var statusText: TextView
     private lateinit var countdownText: TextView
-    private lateinit var idleGroup: LinearLayout
-    private lateinit var startButton: Button
+    private lateinit var startResetButton: Button
+    private lateinit var endButton: Button
     private val handler = Handler(Looper.getMainLooper())
     private var sequenceRunning = false
 
@@ -53,13 +53,24 @@ class MainActivity : AppCompatActivity() {
         rootView = findViewById(R.id.root)
         statusText = findViewById(R.id.status)
         countdownText = findViewById(R.id.countdown)
-        idleGroup = findViewById(R.id.idleGroup)
-        startButton = findViewById(R.id.startButton)
+        startResetButton = findViewById(R.id.startResetButton)
+        endButton = findViewById(R.id.endButton)
 
-        startButton.setOnClickListener {
-            if (!sequenceRunning) {
+        startResetButton.setOnClickListener {
+            if (sequenceRunning) {
+                resetSequence()
+            } else {
                 runSequence()
             }
+        }
+
+        endButton.setOnClickListener {
+            handler.removeCallbacksAndMessages(null)
+            if (::speechRecognizer.isInitialized) {
+                speechRecognizer.destroy()
+            }
+            finishAffinity()
+            Process.killProcess(Process.myPid())
         }
 
         showIdleState()
@@ -126,14 +137,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun showIdleState() {
         rootView.setBackgroundColor(Color.RED)
-        idleGroup.visibility = View.VISIBLE
+        statusText.visibility = View.VISIBLE
         countdownText.visibility = View.GONE
+        startResetButton.text = "START"
+    }
+
+    private fun resetSequence() {
+        handler.removeCallbacksAndMessages(null)
+        sequenceRunning = false
+        showIdleState()
+        restartListening()
     }
 
     private fun runSequence(step: Int = 0) {
         sequenceRunning = true
-        idleGroup.visibility = View.GONE
+        statusText.visibility = View.GONE
         countdownText.visibility = View.VISIBLE
+        startResetButton.text = "RESET"
 
         if (step >= sequence.size) {
             sequenceRunning = false

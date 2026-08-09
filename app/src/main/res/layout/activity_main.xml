@@ -4,39 +4,18 @@
     android:layout_height="match_parent"
     android:background="#B71C1C">
 
-    <LinearLayout
-        android:id="@+id/idleGroup"
+    <TextView
+        android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center">
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Pripravený? Pre štart zahlas HOP"
-            android:textColor="#FFFFFF"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:paddingLeft="24dp"
-            android:paddingRight="24dp" />
-
-        <Button
-            android:id="@+id/startButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="START"
-            android:textSize="22sp"
-            android:paddingLeft="48dp"
-            android:paddingRight="48dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp" />
-
-    </LinearLayout>
+        android:text="Pripravený? Pre štart zahlas HOP"
+        android:textColor="#FFFFFF"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp" />
 
     <TextView
         android:id="@+id/countdown"
@@ -48,5 +27,38 @@
         android:textSize="140sp"
         android:textStyle="bold"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="48dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/startResetButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:text="START"
+            android:textSize="20sp"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp" />
+
+        <Button
+            android:id="@+id/endButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="END"
+            android:textSize="20sp"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp" />
+
+    </LinearLayout>
 
 </FrameLayout>
