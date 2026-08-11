@@ -12,6 +12,7 @@ object AlarmScheduler {
     fun scheduleAll(context: Context) {
         scheduleOne(context, hour = 6, minute = 0, slot = "RANO", requestCode = 100)
         scheduleOne(context, hour = 20, minute = 0, slot = "VECER", requestCode = 200)
+        scheduleOne(context, hour = 0, minute = 0, slot = "MIDNIGHT", requestCode = 999)
     }
 
     fun scheduleOne(context: Context, hour: Int, minute: Int, slot: String, requestCode: Int) {

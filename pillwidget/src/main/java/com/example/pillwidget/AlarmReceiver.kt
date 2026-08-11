@@ -14,6 +14,14 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val slot = intent.getStringExtra("slot") ?: return
 
+        if (slot == "MIDNIGHT") {
+            // Len vynut reset a prekresli widget - ziadna notifikacia
+            PillPrefs.resetIfNewDay(context)
+            PillWidgetProvider.updateAllWidgets(context)
+            AlarmScheduler.scheduleOne(context, hour = 0, minute = 0, slot = "MIDNIGHT", requestCode = 999)
+            return
+        }
+
         PillPrefs.resetIfNewDay(context)
         val taken = PillPrefs.isTaken(context, slot)
         if (!taken) {
